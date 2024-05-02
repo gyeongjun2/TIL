@@ -97,3 +97,173 @@ public class DBConnectionUtil {
 1. 애플리케이션 로직에서 커넥션이 필요하면 DriverManager.getConnection() 호출
 2. DriverManger는 라이브러리에 등록된 드라이버 목록을 자동으로 스캔, 드라이버들에게 파라미터 정보를 넘겨서 커넥션을 획득할 수 있는지 확인 → URL, 이름, 비밀번호 등 추가정보…
 3. 찾은 커넥션 구현체 클라이언트로 반환
+
+
+### JDBC 개발 - 등록
+
+먼저 데이터베이스에 Member 테이블 생성
+
+```sql
+create table member(
+		member_id varchar(10),
+		money integer not null default 0,
+		primary key(member_id);
+);
+```
+
+회원 클래스 생성
+
+```java
+@Data
+public class Member {
+
+    private String memberId;
+    private int money;
+
+    public Member(){
+    }
+
+    public Member(String memberId, int money) {
+        this.memberId = memberId;
+        this.money = money;
+    }
+}
+```
+
+이 클래스로 member 테이블에 저장하고 조회할 때 사용.
+
+이제 JDBC를 통해 회원 객체를 데이터베이스에 저장
+
+```java
+@Slf4j
+public class MemberRepositoryV0 {
+    public Member save(Member member) throws SQLException {
+        String sql = "insert into member(member_id, money) values(?, ?)";
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        try {
+            con = getConnection();
+            pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, member.getMemberId());
+            pstmt.setInt(2, member.getMoney());
+            pstmt.executeUpdate();
+            return member;
+        } catch (SQLException e) {
+            log.error("db error", e);
+            throw e;
+        } finally {
+            close(con, pstmt, null);
+        }
+    }
+
+    private void close(Connection con, Statement stmt, ResultSet rs) {
+        if (rs != null) {
+            try {
+                rs.close();
+            } catch (SQLException e) {
+                log.info("error", e);
+            }
+        }
+        if (stmt != null) {
+            try {
+                stmt.close();
+            } catch (SQLException e) {
+                log.info("error", e);
+            }
+        }
+        if (con != null) {
+            try {
+                con.close();
+            } catch (SQLException e) {
+                log.info("error", e);
+            }
+        }
+    }
+    private Connection getConnection() {
+        return DBConnectionUtil.getConnection();
+    }
+}
+```
+
+1. 커넥션 획득
+- getConnection()을 만들어뒀던 DBConnectionUtil을 통해 DB 커넥션을 얻는다.
+1. save()
+- DB에 전달할 SQL을 정의. 데이터 등록을 위해 insert 사용.
+- `con.prepareStatement(sql)` : DB에 전달할 SQL과 파라미터로 전달할 데이터를 준비
+- `pstmt.setString(1, member.getMemberId())` : SQL의 첫번째 ? 값을 지정. 문자이므로 setString
+- `pstmt.setInt(2, member.getMoney())` : SQL의 두번째 ? 값을 지정. 정수이므로 SetInt
+- `pstmt.executeUpdate()` : Statement를 통해 준비된 SQL을 실제 데이터베이스에 전달. 이때 return 값으로 DB 행의 수를 반환한다. ex) 위 코드처럼 하면 1개의 행을 등록했으니까 1을 반환.
+
+리소스 정리
+
+- 쿼리 실행 후 항상 리소스를 정리해야한다. 리소스를 정리할때는 역순으로 한다. Connection → PreparedStatement를 사용했으므로 반대로 Pre 종료 → Con 종료
+- finally 구문에 작성하자.
+
+### JDBC 개발 - 조회
+
+저장된 데이터 조회 기능
+
+```java
+public Member findById(String memberId) throws SQLException {
+        String sql = "select * from member where member_id = ?";
+
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+
+        try{
+            con = getConnection();
+            pstmt = con.prepareStatement(sql);
+            pstmt.setString(1, memberId);
+
+            rs = pstmt.executeQuery();
+
+            if(rs.next()){
+                Member member = new Member();
+                member.setMemberId(rs.getString("member_id"));
+                member.setMoney(rs.getInt("money"));
+                return member;
+            }else{
+                throw new NoSuchElementException("member not found memberId= "+memberId);
+            }
+        } catch (SQLException e){
+            log.error("db error", e);
+            throw e;
+        }finally {
+            close(con, pstmt, rs);
+        }
+    }
+```
+
+- 데이터를 조회할때는 `executeQuery()`를 사용한다.
+    - `executeQuery()`는 결과를 ResultSet에 담아서 반환한다.
+- Resultset은 저장되있는 데이터 구조로 select 쿼리의 결과 순서대로 들어가있음
+- rs은 초기에는 데이터를 가리키지 않기때문에 `rs.next()`를 통해 다음 커서(데이터가 있는곳)로 가리키게 해서 데이터를 조회해야됨
+
+### JDBC 개발 - 수정
+
+```java
+public void update(String memberId, int money) throws SQLException {
+        String sql = "update member set money=? where member_id=?";
+        Connection con = null;
+        PreparedStatement pstmt = null;
+        try {
+            con = getConnection();
+            pstmt = con.prepareStatement(sql);
+            pstmt.setInt(1, money);
+            pstmt.setString(2, memberId);
+            int resultSize = pstmt.executeUpdate();
+            log.info("resultSize={}", resultSize);
+        } catch (SQLException e) {
+            log.error("db error", e);
+            throw e;
+        } finally {
+            close(con, pstmt, null);
+        }
+
+    }
+```
+
+- `executeUpdate()`- 쿼리 실행 후 영향받은 행의 수 리턴
+
+출처 : 김영한 선생님의 [스프링 -DB 1편] 강의를 듣고 정리한 내용입니다.
