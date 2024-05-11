@@ -16,7 +16,7 @@
 
 ### `@Profile` ?
 
-- 스프링 로딩 시점에 [application.properties](http://application.properties)에 있는 spring.profiles.active 속성을 읽어 프로필로 사용한다.
+- 스프링 로딩 시점에 `application.properties`에 있는 `spring.profiles.active`속성을 읽어 프로필로 사용한다.
 - 예를들어 로컬PC에서는 로컬에 저장된 데이터베이스에 접근해야 하고 운영 환경에서는 운영 데이터베이스에 접근해야 한다면 설정 정보가 달라야 한다. 또한 환경에 따라 다른 스프링 빈을 등록할 때 프로필을 사용한다.
 
 ```java
