@@ -3,7 +3,6 @@
 애플리케이션을 개발할 때 중요한 데이터는 데이터베이스에 보관한다.
 
 
-![alt text](Untitled.png)
 
 애플리케이션 서버와 DB의 문제점은 DB가 변경될 때 발생한다. 예전에는 데이터베이스마다 커넥션을 연결하는 방법, SQL을 전달하는 방법, 그리고 결과를 응답받는 방법 등이 모두 달랐다.
 
@@ -13,7 +12,7 @@
 
 - JDBC(Java Database Connectivity)는 자바에서 데이터베이스에 접속할 수 있도록 하는 자바 API이다. JDBC는 데이터베이스에서 자료를 쿼리하거나 업데이트하는 방법을 제공한다.
 
-![alt text](<Untitled 1.png>)
+
 
 대표적으로 3가지 기능을 표준 인터페이스로 정의한다.
 
@@ -89,8 +88,8 @@ public class DBConnectionUtil {
 드라이버 커넥션은 JDBC 표준 커넥션 인터페이스인 `java.sql.Connection` 인터페이스를 구현하고 있다.
 
 
-![alt text](<Untitled 2.png>)
-이런식으로 인터페이스를 jdbc가 정의하고 각각의 데이터베이스 드라이버는 JDBC Connection 인터페이스를 구현한 구현체들을 제공하는것임
+
+인터페이스를 jdbc가 정의하고 각각의 데이터베이스 드라이버는 JDBC Connection 인터페이스를 구현한 구현체들을 제공하는것임
 
 정리하자면,
 
